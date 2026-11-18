@@ -1,0 +1,29 @@
+name: Ошибка
+description: Сообщить о проблеме в работе суфлёра
+title: "[Ошибка] "
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Версия суфлёра
+      description: Указана в настройках по шестерёнке.
+      placeholder: "1.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: windows
+    attributes:
+      label: Версия Windows
+      options:
+        - Windows 11
+        - Windows 10
+        - Другая
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Что произошло
+      description: Опишите шаги, ожидаемый результат и то, что получилось. При необходимости приложите скриншот.
+    validations:
+      required: true

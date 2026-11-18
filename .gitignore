@@ -1,0 +1,15 @@
+# Local builds, generated icons and tests
+src/build/
+src/test-output/
+src/MakeIcon.exe
+src/Sufler.ico
+*.pdb
+*.tmp
+# Personal text and settings
+session.xml
+draft*.txt
+# Editors and OS
+.vs/
+.vscode/
+Thumbs.db
+Desktop.ini

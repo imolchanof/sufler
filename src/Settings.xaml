@@ -1,0 +1,16 @@
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Настройки · Суфлёр" Width="510" SizeToContent="Height" ResizeMode="NoResize" WindowStartupLocation="CenterOwner" ShowInTaskbar="False" FontFamily="Segoe UI" FontSize="14" Background="{DynamicResource Bg}" Foreground="{DynamicResource Ink}">
+ <StackPanel Margin="24">
+  <TextBlock Text="Настройки" FontSize="24" FontWeight="Bold" Margin="0,0,0,20"/>
+  <Border CornerRadius="12" Padding="18" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Edge}" BorderThickness="1">
+   <StackPanel>
+    <CheckBox x:Name="AutoStart" Content="Запускать вместе с Windows" Margin="0,0,0,8"/>
+    <TextBlock Text="При входе в Windows суфлёр запустится в трее. Открыть окно можно нажатием на значок." Foreground="{DynamicResource Muted}" Margin="0,0,0,18"/>
+    <CheckBox x:Name="CloseToTray" Content="При закрытии сворачивать в трей" Margin="0,0,0,8"/>
+    <TextBlock Text="Крестик скрывает окно и ставит чтение на паузу. Для полного выхода выберите «Выйти» в меню значка." Foreground="{DynamicResource Muted}"/>
+   </StackPanel>
+  </Border>
+  <TextBlock Text="Размер шрифта: 5–100, шаг 1. Все шрифты работают локально." Foreground="{DynamicResource Muted}" Margin="0,16,0,8"/>
+  <TextBlock Text="Суфлёр · версия 1.1" Foreground="{DynamicResource Muted}" FontSize="12" Margin="0,0,0,20"/>
+  <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button x:Name="Cancel" Content="Отмена" IsCancel="True" Margin="0,0,10,0"/><Button x:Name="Apply" Content="Сохранить" IsDefault="True" Background="{DynamicResource Accent}" Foreground="White"/></StackPanel>
+ </StackPanel>
+</Window>

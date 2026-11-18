@@ -1,0 +1,83 @@
+name: Build Windows
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build portable executable
+        shell: powershell
+        run: ./src/build.ps1
+      - name: Verify application
+        shell: powershell
+        timeout-minutes: 3
+        run: |
+          $process = Start-Process -FilePath "$pwd/src/build/Sufler.exe" -ArgumentList '--self-test' -WindowStyle Hidden -Wait -PassThru
+          Get-Content src/build/test-output/result.txt
+          if ($process.ExitCode -ne 0) { throw 'Self-test failed' }
+      - name: Package Windows download
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Path dist -Force | Out-Null
+          Copy-Item src/build/Sufler.exe dist/Sufler.exe
+          Copy-Item README.md, LICENSE, CHANGELOG.md dist
+          Copy-Item src/Fonts/Inter-LICENSE.txt dist
+          Compress-Archive -Path dist/Sufler.exe,dist/README.md,dist/LICENSE,dist/CHANGELOG.md,dist/Inter-LICENSE.txt -DestinationPath dist/Sufler-Windows.zip
+          $checksums = Get-FileHash dist/Sufler.exe,dist/Sufler-Windows.zip -Algorithm SHA256 | ForEach-Object { $_.Hash.ToLowerInvariant() + '  ' + (Split-Path $_.Path -Leaf) }
+          $checksums | Set-Content dist/SHA256SUMS.txt -Encoding ASCII
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Sufler-Windows
+          path: dist/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Sufler-test-results
+          path: src/build/test-output/
+          if-no-files-found: ignore
+
+  release:
+    name: Publish release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Sufler-Windows
+          path: dist
+      - name: Publish tested binaries
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          cat > release-notes.md <<'NOTES'
+          Простой суфлёр для Windows 10/11. Установка и интернет не нужны.
+
+          **Скачать:** `Sufler.exe` — готовое приложение; `Sufler-Windows.zip` — приложение с документацией и лицензиями.
+
+          - Размер текста **от 5 до 100**, шаг 1, ввод числом.
+          - Скорость прокрутки, пауза и отсчёт перед стартом.
+          - Пять локальных шрифтов, включая встроенный Inter.
+          - Четыре темы, полный экран, зеркало и линия чтения.
+          - Автосохранение, импорт и экспорт `.txt`.
+          - Трей и настройки по шестерёнке, автозапуск Windows.
+
+          Сборка прошла автоматические проверки. Контрольные суммы — в `SHA256SUMS.txt`.
+          NOTES
+          gh release create "$RELEASE_TAG" --target "$GITHUB_SHA" --title "Суфлёр $RELEASE_TAG · Windows" --notes-file release-notes.md dist/Sufler.exe dist/Sufler-Windows.zip dist/SHA256SUMS.txt
