@@ -33,7 +33,8 @@ jobs:
           Copy-Item src/build/Sufler.exe dist/Sufler.exe
           Copy-Item README.md, LICENSE, CHANGELOG.md dist
           Copy-Item src/Fonts/Inter-LICENSE.txt dist
-          Compress-Archive -Path dist/Sufler.exe,dist/README.md,dist/LICENSE,dist/CHANGELOG.md,dist/Inter-LICENSE.txt -DestinationPath dist/Sufler-Windows.zip
+          Copy-Item docs dist -Recurse
+          Compress-Archive -Path dist/Sufler.exe,dist/README.md,dist/LICENSE,dist/CHANGELOG.md,dist/Inter-LICENSE.txt,dist/docs -DestinationPath dist/Sufler-Windows.zip
           $checksums = Get-FileHash dist/Sufler.exe,dist/Sufler-Windows.zip -Algorithm SHA256 | ForEach-Object { $_.Hash.ToLowerInvariant() + '  ' + (Split-Path $_.Path -Leaf) }
           $checksums | Set-Content dist/SHA256SUMS.txt -Encoding ASCII
       - uses: actions/upload-artifact@v4
@@ -74,6 +75,7 @@ jobs:
           - Размер текста **от 5 до 100**, шаг 1, ввод числом.
           - Скорость прокрутки, пауза и отсчёт перед стартом.
           - Пять локальных шрифтов, включая встроенный Inter.
+          - Выбор начертания: Inter Thin 100, ExtraLight 200, Light 300 и другие. По умолчанию — тонкий ExtraLight 200.
           - Четыре темы, полный экран, зеркало и линия чтения.
           - Автосохранение, импорт и экспорт `.txt`.
           - Трей и настройки по шестерёнке, автозапуск Windows.

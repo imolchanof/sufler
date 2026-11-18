@@ -38,7 +38,7 @@
    <Border Grid.Column="2" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Edge}" BorderThickness="1" CornerRadius="14" ClipToBounds="True">
     <Grid x:Name="ReaderArea" ClipToBounds="True">
      <ScrollViewer x:Name="Reader" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled" CanContentScroll="False" Focusable="False" Margin="24,0">
-      <StackPanel x:Name="ScriptStack" RenderTransformOrigin="0.5,0.5"><Border x:Name="TopSpace" Height="120"/><TextBlock x:Name="Script" TextWrapping="Wrap" FontSize="48" LineHeight="70" FontWeight="SemiBold"/><Border x:Name="BottomSpace" Height="240"/></StackPanel>
+      <StackPanel x:Name="ScriptStack" RenderTransformOrigin="0.5,0.5"><Border x:Name="TopSpace" Height="120"/><TextBlock x:Name="Script" TextWrapping="Wrap" FontSize="48" LineHeight="70" FontWeight="ExtraLight"/><Border x:Name="BottomSpace" Height="240"/></StackPanel>
      </ScrollViewer>
      <Border x:Name="ReadingLine" Height="2" Background="{DynamicResource Muted}" VerticalAlignment="Top" Margin="12,120,12,0" IsHitTestVisible="False"/>
      <TextBlock x:Name="CountdownText" Visibility="Collapsed" Text="3" FontSize="100" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource Surface}" Padding="30"/>
@@ -56,6 +56,7 @@
     <CheckBox x:Name="Mirror" Content="Зеркало"/><CheckBox x:Name="OnTop" Content="Поверх окон"/><CheckBox x:Name="Countdown" Content="Отсчёт 3 сек" IsChecked="True"/><CheckBox x:Name="Guide" Content="Линия чтения" IsChecked="True"/>
     <StackPanel Orientation="Horizontal" Margin="0,0,16,0"><TextBlock Text="Тема" VerticalAlignment="Center" Margin="0,0,8,0"/><ComboBox x:Name="Theme" Width="164" VerticalAlignment="Center" AutomationProperties.Name="Цветовая тема"><ComboBoxItem Content="Светлая · Мята"/><ComboBoxItem Content="Светлая · Песок"/><ComboBoxItem Content="Тёмная · Графит"/><ComboBoxItem Content="Тёмная · Ночь"/></ComboBox></StackPanel>
     <StackPanel Orientation="Horizontal"><TextBlock Text="Шрифт" VerticalAlignment="Center" Margin="0,0,8,0"/><ComboBox x:Name="FontChoice" Width="120" VerticalAlignment="Center" AutomationProperties.Name="Шрифт текста"><ComboBoxItem Content="Segoe UI"/><ComboBoxItem Content="Inter"/><ComboBoxItem Content="Arial"/><ComboBoxItem Content="Georgia"/><ComboBoxItem Content="Verdana"/></ComboBox></StackPanel>
+    <StackPanel Orientation="Horizontal" Margin="16,0,0,0"><TextBlock Text="Начертание" VerticalAlignment="Center" Margin="0,0,8,0"/><ComboBox x:Name="WeightChoice" Width="190" VerticalAlignment="Center" AutomationProperties.Name="Толщина шрифта" ToolTip="Тонкие начертания доступны у Inter и Segoe UI. Для Arial, Georgia и Verdana используется обычное начертание."/></StackPanel>
    </WrapPanel>
    <Grid Margin="0,8,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock x:Name="Status" Text="Готово к чтению" Foreground="{DynamicResource Muted}"/><TextBlock Grid.Column="1" Text="Пробел — пауза   ·   ↑ ↓ — скорость   ·   Esc — выйти из полного экрана" FontSize="12" Foreground="{DynamicResource Muted}"/></Grid>
    <ProgressBar x:Name="Progress" Height="3" Margin="0,10,0,0" BorderThickness="0" Background="{DynamicResource Edge}" Foreground="{DynamicResource Accent}" Maximum="100"/>

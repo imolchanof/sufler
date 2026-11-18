@@ -10,7 +10,7 @@
    </StackPanel>
   </Border>
   <TextBlock Text="Размер шрифта: 5–100, шаг 1. Все шрифты работают локально." Foreground="{DynamicResource Muted}" Margin="0,16,0,8"/>
-  <TextBlock Text="Суфлёр · версия 1.1" Foreground="{DynamicResource Muted}" FontSize="12" Margin="0,0,0,20"/>
+  <TextBlock Text="Суфлёр · версия 1.2" Foreground="{DynamicResource Muted}" FontSize="12" Margin="0,0,0,20"/>
   <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button x:Name="Cancel" Content="Отмена" IsCancel="True" Margin="0,0,10,0"/><Button x:Name="Apply" Content="Сохранить" IsDefault="True" Background="{DynamicResource Accent}" Foreground="White"/></StackPanel>
  </StackPanel>
 </Window>

@@ -19,14 +19,16 @@ using Forms = System.Windows.Forms;
 
 [assembly: AssemblyTitle("Суфлёр")]
 [assembly: AssemblyProduct("Суфлёр")]
-[assembly: AssemblyVersion("1.1.0.0")]
+[assembly: AssemblyVersion("1.2.0.0")]
 
 public sealed class Session
 {
     public string Text = "Привет! Это ваш суфлёр.\n\nВставьте текст выступления в редактор слева. Настройте размер шрифта и скорость, затем нажмите «Начать».\n\nЧитайте спокойно, в своём темпе. Пробел ставит прокрутку на паузу и продолжает её.\n\nДля чтения через стекло включите «Зеркало». А если нужно сосредоточиться на тексте — нажмите F11.\n\nВсё готово. Можно начинать!";
     public double Font = 48, Speed = 40;
     public int Theme;
-    public string FontName = "Segoe UI";
+    public string FontName = "Inter";
+    public int Weight = 200;
+    public int FormatVersion;
     public bool Mirror, Countdown = true, Guide = true, OnTop;
     public bool CloseToTray = true;
     public static Session Load(string path)
@@ -35,6 +37,8 @@ public sealed class Session
         using (var stream = File.OpenRead(path))
         {
             var s = (Session)new XmlSerializer(typeof(Session)).Deserialize(stream);
+            if (s.FormatVersion < 2) { s.FontName = "Inter"; s.Weight = 200; }
+            if (s.Weight != 100 && s.Weight != 200 && s.Weight != 300 && s.Weight != 350 && s.Weight != 400 && s.Weight != 600) s.Weight = 200;
             s.Font = Valid(s.Font, 5, 100, 48); s.Speed = Valid(s.Speed, 5, 160, 40);
             if (s.Theme < 0 || s.Theme > 3) s.Theme = 0;
             s.Text = s.Text ?? ""; return s;
@@ -43,6 +47,7 @@ public sealed class Session
     static double Valid(double n, double min, double max, double fallback) { return Double.IsNaN(n) || Double.IsInfinity(n) || n < min || n > max ? fallback : n; }
     public void Save(string path)
     {
+        FormatVersion = 2;
         Directory.CreateDirectory(Path.GetDirectoryName(path));
         string temp = path + ".tmp";
         using (var stream = new FileStream(temp, FileMode.Create, FileAccess.Write))
@@ -100,6 +105,9 @@ internal sealed class Prompter
     internal readonly Slider FontSlider, SpeedSlider;
     internal readonly ComboBox Theme;
     internal readonly ComboBox FontChoice;
+    internal readonly ComboBox WeightChoice;
+    bool updatingWeights;
+    int preferredWeight = 200;
     static readonly string[] FontNames = { "Segoe UI", "Inter", "Arial", "Georgia", "Verdana" };
     readonly FontFamily interFamily;
     readonly CheckBox mirror, onTop, countdown, guide;
@@ -122,7 +130,7 @@ internal sealed class Prompter
         statePath = path; testMode = testing;
         string fontDir = Path.Combine(Path.GetDirectoryName(path), "Fonts");
         Directory.CreateDirectory(fontDir);
-        foreach (string fontFile in new [] { "Inter-Regular.ttf", "Inter-SemiBold.ttf", "Inter-LICENSE.txt" })
+        foreach (string fontFile in new [] { "Inter-Thin.ttf", "Inter-ExtraLight.ttf", "Inter-Light.ttf", "Inter-Regular.ttf", "Inter-SemiBold.ttf", "Inter-LICENSE.txt" })
         {
             string destination = Path.Combine(fontDir, fontFile);
             if (!File.Exists(destination)) using (var source = Assembly.GetExecutingAssembly().GetManifestResourceStream(fontFile))
@@ -134,6 +142,7 @@ internal sealed class Prompter
         Editor = Get<TextBox>("Editor"); Script = Get<TextBlock>("Script"); Status = Get<TextBlock>("Status"); Reader = Get<ScrollViewer>("Reader");
         FontSlider = Get<Slider>("FontSlider"); SpeedSlider = Get<Slider>("SpeedSlider"); Theme = Get<ComboBox>("Theme");
         FontChoice = Get<ComboBox>("FontChoice");
+        WeightChoice = Get<ComboBox>("WeightChoice");
         mirror = Get<CheckBox>("Mirror"); onTop = Get<CheckBox>("OnTop"); countdown = Get<CheckBox>("Countdown"); guide = Get<CheckBox>("Guide"); play = Get<Button>("Play");
         Session saved;
         string loadError = null;
@@ -152,6 +161,7 @@ internal sealed class Prompter
         closeToTray = saved.CloseToTray;
         mirror.IsChecked = saved.Mirror; countdown.IsChecked = saved.Countdown; guide.IsChecked = saved.Guide; onTop.IsChecked = saved.OnTop; Theme.SelectedIndex = saved.Theme;
         FontChoice.SelectedIndex = Math.Max(0, Array.IndexOf(FontNames, saved.FontName));
+        preferredWeight = saved.Weight;
         Editor.TextChanged += delegate { Stop(); Script.Text = Editor.Text; Reader.ScrollToTop(); UpdateWords(); Changed(); };
         FontSlider.ValueChanged += delegate { UpdateFont(); Changed(); };
         Get<TextBox>("FontSizeInput").LostKeyboardFocus += delegate { CommitFontSize(); };
@@ -160,6 +170,12 @@ internal sealed class Prompter
         SpeedSlider.ValueChanged += delegate { UpdateSpeed(); Changed(); };
         Theme.SelectionChanged += delegate { ApplyTheme(); Changed(); };
         FontChoice.SelectionChanged += delegate { UpdateFontFamily(); Changed(); };
+        WeightChoice.SelectionChanged += delegate
+        {
+            if (updatingWeights || WeightChoice.SelectedItem == null) return;
+            preferredWeight = (int)((ComboBoxItem)WeightChoice.SelectedItem).Tag;
+            Script.FontWeight = FontWeight.FromOpenTypeWeight(preferredWeight); Changed();
+        };
         mirror.Click += delegate { UpdateMirror(); Changed(); };
         onTop.Click += delegate { Window.Topmost = onTop.IsChecked == true; Changed(); };
         countdown.Click += delegate { Changed(); };
@@ -199,7 +215,7 @@ internal sealed class Prompter
         Window.Loaded += delegate { UpdateSpacing(); Reader.ScrollToTop(); };
     }
     void Changed() { if (!ready) return; dirty = true; autosave.Stop(); autosave.Start(); }
-    internal Session Snapshot() { return new Session { Text = Editor.Text, Font = FontSlider.Value, FontName = FontNames[Math.Max(0, FontChoice.SelectedIndex)], Speed = SpeedSlider.Value, Theme = Theme.SelectedIndex, Mirror = mirror.IsChecked == true, Countdown = countdown.IsChecked == true, Guide = guide.IsChecked == true, OnTop = onTop.IsChecked == true, CloseToTray = closeToTray }; }
+    internal Session Snapshot() { return new Session { Text = Editor.Text, Font = FontSlider.Value, FontName = FontNames[Math.Max(0, FontChoice.SelectedIndex)], Weight = Script.FontWeight.ToOpenTypeWeight(), FormatVersion = 2, Speed = SpeedSlider.Value, Theme = Theme.SelectedIndex, Mirror = mirror.IsChecked == true, Countdown = countdown.IsChecked == true, Guide = guide.IsChecked == true, OnTop = onTop.IsChecked == true, CloseToTray = closeToTray }; }
     bool Persist()
     {
         try { Snapshot().Save(statePath); dirty = false; return true; }
@@ -260,7 +276,26 @@ internal sealed class Prompter
         }
         catch (Exception ex) { settingsWindow = null; MessageBox.Show(Window, ex.Message, "Не удалось открыть настройки", MessageBoxButton.OK, MessageBoxImage.Error); }
     }
-    void UpdateFontFamily() { Script.FontFamily = FontChoice.SelectedIndex == 1 ? interFamily : new FontFamily(FontNames[Math.Max(0, FontChoice.SelectedIndex)]); }
+    void UpdateFontFamily()
+    {
+        Script.FontFamily = FontChoice.SelectedIndex == 1 ? interFamily : new FontFamily(FontNames[Math.Max(0, FontChoice.SelectedIndex)]);
+        int[] weights = FontChoice.SelectedIndex == 1 ? new [] { 100, 200, 300, 400, 600 } : FontChoice.SelectedIndex == 0 ? new [] { 300, 350, 400, 600 } : new [] { 400 };
+        updatingWeights = true;
+        try
+        {
+            WeightChoice.Items.Clear(); int best = 0;
+            for (int i = 0; i < weights.Length; i++)
+            {
+                int weight = weights[i];
+                string label = weight == 100 ? "Сверхтонкий · 100" : weight == 200 ? "Очень тонкий · 200" : weight == 300 ? "Тонкий · 300" : weight == 350 ? "Лёгкий · 350" : weight == 400 ? "Обычный · 400" : "Полужирный · 600";
+                WeightChoice.Items.Add(new ComboBoxItem { Content = label, Tag = weight });
+                if (Math.Abs(weight - preferredWeight) < Math.Abs(weights[best] - preferredWeight)) best = i;
+            }
+            WeightChoice.SelectedIndex = best;
+            Script.FontWeight = FontWeight.FromOpenTypeWeight(weights[best]);
+        }
+        finally { updatingWeights = false; }
+    }
     void UpdateSpeed() { Get<TextBlock>("SpeedLabel").Text = "Скорость · " + (int)SpeedSlider.Value + " пикс/с"; }
     void UpdateMirror() { Get<StackPanel>("ScriptStack").RenderTransform = new ScaleTransform(mirror.IsChecked == true ? -1 : 1, 1); }
     void UpdateGuide() { Get<System.Windows.Controls.Border>("ReadingLine").Visibility = guide.IsChecked == true ? Visibility.Visible : Visibility.Collapsed; }
@@ -439,8 +474,11 @@ internal static class Program
             saved.Text = "Изменённый текст"; saved.Save(path); Check(Session.Load(path).Text == saved.Text, "Atomic replacement");
             new Session { Font = Double.NaN, Speed = -1, Theme = 99 }.Save(path);
             saved = Session.Load(path); Check(saved.Font == 48 && saved.Speed == 40 && saved.Theme == 0, "Settings validation");
+            File.WriteAllText(path, "<Session><Text>Старый текст</Text><FontName>Arial</FontName><Font>32</Font><Speed>45</Speed></Session>", Encoding.UTF8);
+            saved = Session.Load(path); Check(saved.Text == "Старый текст" && saved.Font == 32 && saved.Speed == 45 && saved.FontName == "Inter" && saved.Weight == 200, "Upgrade keeps script and uses thin Inter");
             new Session { Countdown = false }.Save(path);
             var p = new Prompter(path, true); p.Window.Show(); p.Window.UpdateLayout();
+            Check(p.FontChoice.SelectedIndex == 1 && p.Script.FontWeight.ToOpenTypeWeight() == 200, "Default is Inter ExtraLight");
             p.Editor.Text = String.Join("\n\n", new string[] { new Session().Text, new Session().Text, new Session().Text }); p.Window.UpdateLayout();
             Check(p.Script.Text == p.Editor.Text, "Editor preview sync");
             p.FontSlider.Value = 72; Check(p.Script.FontSize == 72 && p.Script.LineHeight > 100, "Font and line spacing");
@@ -461,6 +499,17 @@ internal static class Program
             p.FontChoice.SelectedIndex = 1; p.Snapshot().Save(path); Check(Session.Load(path).FontName == "Inter", "Font persistence");
             GlyphTypeface glyph; Check(new Typeface(p.Script.FontFamily, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal).TryGetGlyphTypeface(out glyph) && glyph.FontUri.IsFile && glyph.FontUri.LocalPath.StartsWith(dir, StringComparison.OrdinalIgnoreCase), "Inter uses bundled local font");
             Check(glyph.CharacterToGlyphMap.ContainsKey(0x0416), "Inter Cyrillic glyphs");
+            for (int i = 0; i < 3; i++)
+            {
+                p.WeightChoice.SelectedIndex = i;
+                int expectedWeight = (i + 1) * 100;
+                Check(p.Script.FontWeight.ToOpenTypeWeight() == expectedWeight, "Thin weight selection");
+                Check(new Typeface(p.Script.FontFamily, FontStyles.Normal, p.Script.FontWeight, FontStretches.Normal).TryGetGlyphTypeface(out glyph) && glyph.Weight.ToOpenTypeWeight() == expectedWeight && glyph.FontUri.IsFile && glyph.CharacterToGlyphMap.ContainsKey(0x0416), "Real local thin weight with Cyrillic");
+                p.Snapshot().Save(path); Check(Session.Load(path).Weight == expectedWeight, "Thin weight persistence");
+            }
+            p.FontChoice.SelectedIndex = 2; Check(p.WeightChoice.Items.Count == 1 && p.Script.FontWeight == FontWeights.Normal, "Arial offers real normal weight only");
+            p.FontChoice.SelectedIndex = 0; Check(p.Script.FontWeight == FontWeights.Light && p.WeightChoice.Items.Count == 4, "Segoe UI Light");
+            p.FontChoice.SelectedIndex = 1; p.WeightChoice.SelectedIndex = 1;
             for (int i = 0; i < 4; i++)
             {
                 p.Theme.SelectedIndex = i; p.Window.UpdateLayout();
@@ -502,7 +551,7 @@ internal static class Program
             lifecycle.Window.Close(); Check(!lifecycle.Window.IsVisible, "Close button hides actual application to tray");
             lifecycle.ShowWindow(); Check(lifecycle.Window.IsVisible, "Restore after close button");
             lifecycle.Exit();
-            File.WriteAllText(Path.Combine(dir, "result.txt"), "PASS: UTF-8 persistence, atomic replacement, setting validation, editor sync, typography, font size from 5 with step 1, direct numeric size 5 + input validation, five fonts, local bundled Inter + Cyrillic glyphs, font persistence, scrolling speed, pause, reset, four themes + contrast, theme dropdown, editor visibility, fullscreen, end of script, empty script, countdown, startup command quoting, settings + contrast, close-to-tray persistence, tray creation + hide + pause + restore + minimize + cleanup.\r\n", Encoding.UTF8);
+            File.WriteAllText(Path.Combine(dir, "result.txt"), "PASS: UTF-8 persistence, atomic replacement, setting validation, editor sync, typography, font size from 5 with step 1, direct numeric size 5 + input validation, five fonts, local bundled Inter + Cyrillic glyphs, genuine Thin 100 + ExtraLight 200 + Light 300 glyphs, weight persistence, thin default, migration from 1.1, real supported font weights, scrolling speed, pause, reset, four themes + contrast, theme dropdown, editor visibility, fullscreen, end of script, empty script, countdown, startup command quoting, settings + contrast, close-to-tray persistence, tray creation + hide + pause + restore + minimize + cleanup.\r\n", Encoding.UTF8);
             return 0;
         }
         catch (Exception ex) { File.WriteAllText(Path.Combine(dir, "result.txt"), "FAIL: " + ex, Encoding.UTF8); return 1; }
